@@ -1,7 +1,30 @@
 const express = require('express');
 const Post = require('./api/models/posts');
 const postsData = new Post();
+const multer = require('multer');
+
+var storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, './uploads')
+    },
+    filename: function (req, file, cb) {
+        cb(null, `${file.fieldname}-${Date.now()}${getExt(file.mimetype)}`);
+    }
+});
+
+const getExt = (mimeType) => {
+    switch (mimeType) {
+        case "image/png":
+            return ".png";
+        case "image/jpeg":
+            return ".jpeg";
+    }
+}
+
+const upload = multer({ storage: storage });
 const app = express();
+
+app.use(express.json());
 
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -22,6 +45,18 @@ app.get('/api/posts/:post_id', (req, res) => {
     } else {
         res.status(404).send('Not Found');
     }
+});
+
+app.post('/api/posts', upload.single("post-image"), (req, res) => {
+    const newPost = {
+        "id": `${Date.now()}`,
+        "title": req.body.title,
+        "content": req.body.content,
+        "post_image": req.file.path,
+        "added_date": `${Date.now()}`
+    }
+    postsData.add(newPost);
+    res.status(201).send('ok');
 })
 
 app.listen(3000, () => console.log('listening on port 3000'));
